@@ -2,7 +2,9 @@ import { Car, type Controls } from "./car";
 import { NeuralNetwork, type NetworkData } from "./network";
 import { getScene, SCENES, type SceneDef } from "./scenes";
 import { TrafficCar } from "./traffic";
-import { Track, type Obstacle, type Segment } from "./track";
+import { stepCarOnTrack } from "./drive";
+import { drawTrack } from "./render";
+import type { Track } from "./track";
 
 export interface SimulationConfig {
   sceneId: string;
@@ -262,48 +264,7 @@ export class Simulation {
   }
 
   private updateCar(car: Car, traffic: TrafficCar[], keyControls?: Controls) {
-    if (car.damaged || car.finished) {
-      // still let the sensors render for the leader
-      if (car.sensor) car.sensor.update(car, [], []);
-      return;
-    }
-
-    const index = this.track.nearestIndex(car, car.trackIndex, 30);
-    const prevIndex = car.trackIndex;
-    car.trackIndex = index;
-
-    const n = this.track.centerline.length;
-    if (this.track.closed) {
-      if (prevIndex > n * 0.8 && index < n * 0.2) car.laps++;
-      else if (prevIndex < n * 0.2 && index > n * 0.8) car.laps = Math.max(0, car.laps - 1);
-    }
-
-    const along = this.track.distanceAtIndex(index) + car.laps * this.track.total;
-    car.progress = along;
-    if (along > car.bestProgress + 0.5) {
-      car.bestProgress = along;
-      car.idleTicks = 0;
-    } else {
-      car.idleTicks++;
-    }
-
-    if (!this.track.closed && along >= this.track.total - 120) {
-      car.finished = true;
-    }
-
-    const borders: Segment[] = this.track.segmentsNear(index, 7);
-    const obstacles: Obstacle[] = [
-      ...traffic
-        .filter((t) => Math.abs(t.x - car.x) < 320 && Math.abs(t.y - car.y) < 320)
-        .map((t) => ({ polygon: t.polygon })),
-      ...this.track.obstacles.filter(
-        (o) =>
-          Math.abs(o.polygon[0].x - car.x) < 320 &&
-          Math.abs(o.polygon[0].y - car.y) < 320,
-      ),
-    ];
-
-    car.update(borders, obstacles, keyControls);
+    stepCarOnTrack(this.track, car, traffic, keyControls);
   }
 
   get stats(): SimulationStats {
@@ -346,7 +307,7 @@ export class Simulation {
     ctx.scale(zoom, zoom);
     ctx.translate(-cam.x, -cam.y);
 
-    this.drawTrack(ctx);
+    drawTrack(ctx, this.track);
 
     for (const t of this.traffic) {
       if (Math.abs(t.x - cam.x) > 2200 || Math.abs(t.y - cam.y) > 2200) continue;
@@ -364,88 +325,6 @@ export class Simulation {
     this.playerCar?.draw(ctx, { drawSensor: false });
 
     ctx.restore();
-  }
-
-  private drawTrack(ctx: CanvasRenderingContext2D) {
-    const { leftEdge, rightEdge, centerline, closed, laneCount, width } = this.track;
-    const n = centerline.length;
-
-    // asphalt
-    ctx.beginPath();
-    ctx.moveTo(leftEdge[0].x, leftEdge[0].y);
-    for (let i = 1; i < n; i++) ctx.lineTo(leftEdge[i].x, leftEdge[i].y);
-    if (closed) ctx.lineTo(leftEdge[0].x, leftEdge[0].y);
-    for (let i = n - 1; i >= 0; i--) ctx.lineTo(rightEdge[i].x, rightEdge[i].y);
-    ctx.closePath();
-    ctx.fillStyle = "#334155";
-    ctx.fill("evenodd");
-
-    // lane markings
-    ctx.setLineDash([22, 22]);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = "rgba(226,232,240,0.55)";
-    const laneWidth = width / laneCount;
-    for (let k = 1; k < laneCount; k++) {
-      const offset = width / 2 - k * laneWidth;
-      ctx.beginPath();
-      for (let i = 0; i < n; i++) {
-        const p = centerline[i];
-        const nx = this.track.normals[i].x * offset;
-        const ny = this.track.normals[i].y * offset;
-        if (i === 0) ctx.moveTo(p.x + nx, p.y + ny);
-        else ctx.lineTo(p.x + nx, p.y + ny);
-      }
-      if (closed) ctx.closePath();
-      ctx.stroke();
-    }
-
-    // edges
-    ctx.setLineDash([]);
-    ctx.lineWidth = 6;
-    ctx.strokeStyle = "#f8fafc";
-    for (const edge of [leftEdge, rightEdge]) {
-      ctx.beginPath();
-      for (let i = 0; i < n; i++) {
-        if (i === 0) ctx.moveTo(edge[i].x, edge[i].y);
-        else ctx.lineTo(edge[i].x, edge[i].y);
-      }
-      if (closed) ctx.closePath();
-      ctx.stroke();
-    }
-
-    // start / finish line
-    const startA = leftEdge[0];
-    const startB = rightEdge[0];
-    ctx.setLineDash([14, 14]);
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = "#facc15";
-    ctx.beginPath();
-    ctx.moveTo(startA.x, startA.y);
-    ctx.lineTo(startB.x, startB.y);
-    ctx.stroke();
-
-    if (!closed) {
-      const endA = leftEdge[n - 1];
-      const endB = rightEdge[n - 1];
-      ctx.strokeStyle = "#4ade80";
-      ctx.beginPath();
-      ctx.moveTo(endA.x, endA.y);
-      ctx.lineTo(endB.x, endB.y);
-      ctx.stroke();
-    }
-    ctx.setLineDash([]);
-
-    // static obstacles
-    for (const o of this.track.obstacles) {
-      ctx.fillStyle = o.kind === "cone" ? "#fb923c" : "#e11d48";
-      ctx.beginPath();
-      ctx.moveTo(o.polygon[0].x, o.polygon[0].y);
-      for (let i = 1; i < o.polygon.length; i++) {
-        ctx.lineTo(o.polygon[i].x, o.polygon[i].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-    }
   }
 }
 
