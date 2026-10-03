@@ -47,10 +47,13 @@ export class Car {
   brain: NeuralNetwork | null = null;
   polygon: Point[] = [];
 
-  /** Fitness bookkeeping. */
-  startY: number;
-  bestY: number;
+  /** Progress bookkeeping along the current track. */
+  trackIndex = 0;
+  progress = 0;
+  bestProgress = 0;
+  laps = 0;
   idleTicks = 0;
+  finished = false;
 
   constructor(
     x: number,
@@ -63,8 +66,6 @@ export class Car {
     this.y = y;
     this.width = width;
     this.height = height;
-    this.startY = y;
-    this.bestY = y;
 
     this.controlType = options.controlType ?? "AI";
     this.maxSpeed = options.maxSpeed ?? 3;
@@ -81,9 +82,9 @@ export class Car {
     this.polygon = this.createPolygon();
   }
 
-  /** Distance travelled "up" the road — the genetic algorithm's fitness. */
+  /** Distance covered along the track — the genetic algorithm's fitness. */
   get fitness(): number {
-    return this.startY - this.bestY;
+    return this.bestProgress;
   }
 
   update(
@@ -91,22 +92,15 @@ export class Car {
     traffic: Obstacle[],
     keyControls?: Controls,
   ) {
-    if (!this.damaged) {
+    if (!this.damaged && !this.finished) {
       this.move(keyControls);
       this.polygon = this.createPolygon();
       this.damaged = this.assessDamage(roadBorders, traffic);
-
-      if (this.y < this.bestY) {
-        this.bestY = this.y;
-        this.idleTicks = 0;
-      } else {
-        this.idleTicks++;
-      }
     }
 
     if (this.sensor) {
       this.sensor.update(this, roadBorders, traffic);
-      if (this.useBrain && this.brain && !this.damaged) {
+      if (this.useBrain && this.brain && !this.damaged && !this.finished) {
         const outputs = NeuralNetwork.feedForward(
           this.sensor.getValues(),
           this.brain,

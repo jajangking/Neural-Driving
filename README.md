@@ -12,7 +12,18 @@ Populasi mobil dievolusikan dengan *genetic algorithm*: yang paling jauh melaju 
 - **Sensor raycast** 3–15 ray, mendeteksi pembatas jalan & mobil lain, dinormalisasi ke `[0,1]`.
 - **Genetic algorithm** — populasi s/d 500 mobil paralel, elitism + mutasi, fitness = jarak tempuh.
 - **Visualizer jaringan** real-time: bobot, bias, dan neuron aktif mobil terbaik.
-- **Jalan tak terbatas** dengan lalu lintas prosedural (kepadatan & jumlah lajur bisa diatur).
+- **6 scene / sirkuit** yang bisa diganti kapan saja tanpa reload — brain ikut dibawa pindah:
+  | Scene | Tipe | Catatan |
+  |---|---|---|
+  | Highway | lurus, terbuka | padat, fokus menyalip |
+  | Jalan Berkelok | sinus panjang, terbuka | tikungan S |
+  | Sirkuit Oval | loop tertutup | menghitung **lap** |
+  | Sirkuit GP | loop tertutup acak | hairpin, layout bisa diacak |
+  | Slalom | lurus + barrier zig-zag | nyaris tanpa lalu lintas |
+  | Rally Chicane | berkelok + kerucut acak | mode tersulit |
+- **Generator track berbasis seed** — tombol *Acak layout* bikin sirkuit baru yang deterministik.
+- **Lalu lintas mengikuti jalur** (ikut menikung), kepadatan & jumlah lajur bisa diatur, auto-recycle di depan pemimpin.
+- **Kamera follow + zoom 0.25–1.6×**, garis start kuning & finish hijau, progres/lap real-time.
 - **Turbo 1–12×** untuk mempercepat training, pause/play, skip generasi.
 - **Simpan / hapus / export / import brain** (localStorage + file JSON) — brain tersimpan otomatis dipakai lagi saat halaman dibuka.
 - **Mode manual** (WASD / arrow keys) untuk ikut nyetir di tengah simulasi.
@@ -77,8 +88,9 @@ lib/
   network.ts         neural network + mutasi + serialisasi
   sensor.ts          raycasting
   car.ts             fisika mobil, tabrakan, kontrol
-  road.ts            jalan & lajur
-  traffic via simulation.ts
+  track.ts           geometri track (centerline, tepi, lane, progres)
+  scenes.ts          definisi 6 scene + generator track berseed
+  traffic.ts         lalu lintas yang menyusuri jalur
   simulation.ts      dunia, populasi, genetic algorithm
   visualizer.ts      render jaringan saraf
   utils.ts           lerp, intersection, helper warna

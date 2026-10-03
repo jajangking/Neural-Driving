@@ -261,3 +261,49 @@ input[type="range"] {
     height: 60dvh;
   }
 }
+
+/* ---------- scene picker ---------- */
+.scenes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.scene {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.scene b {
+  font-size: 12.5px;
+}
+
+.scene span {
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.scene:hover {
+  border-color: #2b3c63;
+  background: #1d2a49;
+}
+
+.scene.active {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.scene.active b {
+  color: var(--accent);
+}

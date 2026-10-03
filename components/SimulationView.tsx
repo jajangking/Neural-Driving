@@ -13,6 +13,7 @@ import {
   type SimulationConfig,
   type SimulationStats,
 } from "@/lib/simulation";
+import { SCENES, getScene } from "@/lib/scenes";
 import type { Controls } from "@/lib/car";
 import type { NetworkData } from "@/lib/network";
 import { Visualizer } from "@/lib/visualizer";
@@ -35,12 +36,16 @@ function notifyBrainStore() {
 }
 
 const emptyStats: SimulationStats = {
+  sceneName: getScene(DEFAULT_CONFIG.sceneId).name,
   generation: 1,
   alive: 0,
   population: 0,
   distance: 0,
   bestDistance: 0,
+  laps: 0,
+  progressPct: 0,
   speed: 0,
+  finished: 0,
   ticks: 0,
 };
 
@@ -198,6 +203,28 @@ export default function SimulationView() {
     [],
   );
 
+  const scene = getScene(config.sceneId);
+
+  const switchScene = (sceneId: string, keepBrain = true) => {
+    const sim = simRef.current;
+    if (!sim) return;
+    sim.setScene(sceneId, { keepBrain });
+    setConfig({ ...sim.config });
+    flash(
+      keepBrain
+        ? `Pindah ke ${getScene(sceneId).name} — brain dibawa`
+        : `${getScene(sceneId).name} — mulai dari nol`,
+    );
+  };
+
+  const randomizeScene = () => {
+    const sim = simRef.current;
+    if (!sim) return;
+    sim.randomizeScene();
+    setConfig({ ...sim.config });
+    flash("Layout track diacak");
+  };
+
   const saveBrain = () => {
     const data = simRef.current?.getBrain();
     if (!data) return;
@@ -263,8 +290,14 @@ export default function SimulationView() {
           </div>
         </div>
         <div className="stats">
+          <Stat label="Scene" value={stats.sceneName} />
           <Stat label="Generasi" value={stats.generation} />
           <Stat label="Hidup" value={`${stats.alive}/${stats.population}`} />
+          {scene.closed ? (
+            <Stat label="Lap" value={`${stats.laps} (${stats.progressPct}%)`} />
+          ) : (
+            <Stat label="Progres" value={`${stats.progressPct}%`} />
+          )}
           <Stat label="Jarak" value={`${stats.distance} px`} />
           <Stat label="Rekor" value={`${stats.bestDistance} px`} />
           <Stat label="Kecepatan" value={stats.speed} />
@@ -274,6 +307,40 @@ export default function SimulationView() {
       <main className="stage">
         <canvas ref={worldRef} className="world" />
         <aside className="panel">
+          <section>
+            <h2>Scene / sirkuit</h2>
+            <div className="scenes">
+              {SCENES.map((s) => (
+                <button
+                  key={s.id}
+                  className={`scene ${s.id === config.sceneId ? "active" : ""}`}
+                  onClick={() => switchScene(s.id)}
+                  title={s.description}
+                >
+                  <b>{s.name}</b>
+                  <span>{s.description}</span>
+                </button>
+              ))}
+            </div>
+            <div className="row">
+              <button
+                className="btn"
+                onClick={randomizeScene}
+                disabled={!scene.randomizable}
+                title={
+                  scene.randomizable
+                    ? "Acak layout track"
+                    : "Scene ini layout-nya tetap"
+                }
+              >
+                Acak layout
+              </button>
+              <button className="btn" onClick={() => switchScene(config.sceneId, false)}>
+                Reset brain di scene ini
+              </button>
+            </div>
+          </section>
+
           <section>
             <h2>Kontrol</h2>
             <div className="row">
@@ -300,6 +367,19 @@ export default function SimulationView() {
                 max={12}
                 value={turbo}
                 onChange={(e) => setTurbo(Number(e.target.value))}
+              />
+            </label>
+            <label className="field">
+              <span>
+                Zoom kamera <b>{config.zoom.toFixed(2)}x</b>
+              </span>
+              <input
+                type="range"
+                min={0.25}
+                max={1.6}
+                step={0.05}
+                value={config.zoom}
+                onChange={(e) => applyConfig({ zoom: Number(e.target.value) })}
               />
             </label>
           </section>
@@ -367,6 +447,8 @@ export default function SimulationView() {
                 onChange={(e) =>
                   applyConfig({ trafficDensity: Number(e.target.value) })
                 }
+                onMouseUp={() => simRef.current?.reset()}
+                onTouchEnd={() => simRef.current?.reset()}
               />
             </label>
             <label className="field">
