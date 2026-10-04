@@ -409,3 +409,70 @@ input[type="range"] {
   border: 1px solid rgba(74, 222, 128, 0.45);
   font-size: 13px;
 }
+
+/* ---------- parking 3d ---------- */
+.telemetry {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.telemetry div {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel-2);
+}
+
+.telemetry span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.telemetry b {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.episode-bar {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.episode-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #4ade80);
+  transition: width 0.1s linear;
+}
+
+.navlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.navlink:hover {
+  background: #1d2a49;
+  border-color: #2b3c63;
+}
+
+.hint a {
+  color: var(--accent);
+}

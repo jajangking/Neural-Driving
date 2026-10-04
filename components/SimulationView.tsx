@@ -414,6 +414,9 @@ export default function SimulationView() {
             <h1>Neural Driving</h1>
             <p>Self-driving car · neural network + genetic algorithm</p>
           </div>
+          <a className="navlink" href="/parking">
+            🅿️ Mode Parkir 3D
+          </a>
         </div>
 
         {mode === "train" ? (
