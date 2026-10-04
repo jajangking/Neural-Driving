@@ -31,6 +31,32 @@ Populasi mobil dievolusikan dengan *genetic algorithm*: yang paling jauh melaju 
   (posisi, lap, gap, kecepatan, status crash/finish), waktu finis, dan penentuan pemenang.
   Lawan bisa diambil dari file JSON, brain tersimpan, atau mutan otomatis dari brain utama.
 
+## 🅿️ Mode Parkir 3D (`/parking`)
+
+Mode kedua: mobil belajar **parkir sendiri** di dunia **3D (three.js)** — bukan lagi top-down 2D.
+
+- **Model mobil 3D detail** dibangun dari kode (`lib/parking/model3d.ts`): bodi membulat, kap & bagasi
+  meruncing, kabin + kaca tembus pandang, bumper, grille berlapis krom, lampu depan/rem/mundur yang
+  benar-benar menyala, spion, gagang pintu, knalpot, pelat nomor, antena, dan 4 roda lengkap
+  (ban, velg 5 palang, cakram) yang **berputar sesuai jarak tempuh** dan **membelok mengikuti setir**.
+- **Fisika bicycle model** dengan sudut setir, wheelbase, gigi maju/mundur, rem, dan drag —
+  supaya manuver mundur-masuk-slot terasa benar.
+- **Sensor 360°** (6–24 ray) + input relatif ke slot: posisi di kerangka mobil *dan* di kerangka slot,
+  error sudut, kecepatan, sudut setir.
+- **Otak kontinu** (`lib/parking/brain.ts`): MLP tanh, output = sumbu gas (maju/mundur), sumbu setir
+  proporsional, dan rem. Jauh lebih halus daripada output biner mode balap.
+- **Genetic algorithm**: elitisme top-12%, crossover seragam, mutasi gaussian bertingkat.
+- **Kurikulum otomatis** — populasi mulai dari posisi sudah lurus di depan slot, lalu titik start
+  mundur menjauh tiap kali ada yang berhasil parkir. Tanpa ini reward-nya terlalu jarang untuk dipelajari.
+- **3 skenario**: parkir **tegak lurus**, **paralel** (kerbside), dan **serong 45°**, dengan kepadatan
+  mobil lain, kelonggaran slot, seed denah, dan durasi percobaan yang bisa diatur.
+- **4 kamera**: orbit (drag + scroll), chase, kabin pengemudi, dan tampak atas.
+- **Setir manual** (WASD/arrow + spasi rem), simpan/hapus/ekspor/impor brain, turbo 1–20×.
+
+Fitness-nya berlapis: kedekatan eksponensial ke slot × kelurusan², seberapa banyak bodi mobil masuk
+slot, bonus besar saat seluruh mobil di dalam slot dan **berhenti** lurus selama ~1 detik, dikurangi
+penalti waktu dan diskon berat kalau menabrak.
+
 ## Jalankan lokal
 
 ```bash
@@ -97,6 +123,7 @@ rekor, lalu turunkan mutasi (~0.05–0.1) untuk menghaluskan perilaku.
 app/                 halaman Next.js (App Router)
 components/
   SimulationView.tsx UI, render loop, kontrol, persistensi brain
+  ParkingView.tsx    UI + renderer three.js untuk mode parkir 3D
 lib/
   network.ts         neural network + mutasi + serialisasi
   sensor.ts          raycasting
@@ -109,6 +136,13 @@ lib/
   render.ts          penggambar track bersama
   simulation.ts      dunia, populasi, genetic algorithm
   visualizer.ts      render jaringan saraf
+  parking/
+    lot.ts           denah parkir (slot, mobil terparkir, tembok, pilar) berseed
+    car.ts           bicycle model + sensor 360° + fungsi fitness parkir
+    brain.ts         MLP tanh + mutasi gaussian + crossover
+    sim.ts           populasi, genetic algorithm, kurikulum
+    model3d.ts       model 3D mobil detail (bodi, kaca, lampu, roda)
+    scene3d.ts       denah 3D, marka, aspal prosedural, lampu
   utils.ts           lerp, intersection, helper warna
 ```
 
